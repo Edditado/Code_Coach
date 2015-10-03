@@ -6,11 +6,11 @@ import gtk
 
 class MainWindow: 
     def __init__(self):
-        window = gtk.Window()
-        window.set_title("Code Coach")
-        window.set_size_request(800, 500)
-        window.set_position(gtk.WIN_POS_CENTER)
-        window.connect("destroy", lambda w: gtk.main_quit())
+        self.window = gtk.Window()
+        self.window.set_title("Code Coach")
+        self.window.set_size_request(800, 500)
+        self.window.set_position(gtk.WIN_POS_CENTER)
+        self.window.connect("destroy", lambda w: gtk.main_quit())
 
         extContainer = gtk.VBox()
 
@@ -23,6 +23,8 @@ class MainWindow:
         separator2 = gtk.SeparatorToolItem()
         btnSave = gtk.ToolButton(gtk.STOCK_SAVE)
         
+        btnNew.connect("clicked", self.newDoc)
+
         toolbar.insert(btnNew, 0)
         toolbar.insert(separator1, 1)
         toolbar.insert(btnOpen, 2)
@@ -31,36 +33,22 @@ class MainWindow:
 
         extContainer.pack_start(toolbar, expand=False)
 
-        notebook = gtk.Notebook()
-        label = gtk.Label()
-        notebook.append_page(label, gtk.Label("Documento vacío"))
-        extContainer.pack_start(notebook)
+        self.notebook = gtk.Notebook()
+        textArea = gtk.TextView()
+        self.notebook.append_page(textArea, gtk.Label("Empty document"))
+
+        extContainer.pack_start(self.notebook)
         
-        window.add(extContainer)
-        window.show_all()
+        align = gtk.Alignment(xalign=0.01)
+        notify = gtk.Label("\n")
+        notify.set_justify(gtk.JUSTIFY_LEFT)
+        align.add(notify)
+
+        extContainer.pack_start(align, expand=False)
+
+        self.window.add(extContainer)
+        self.window.show_all()
 
 
 MainWindow()
 gtk.main()
-
-"""#!/usr/bin/env python
-
-import gtk
-
-class Notebook:
-    def __init__(self):
-        window = gtk.Window()
-        window.set_default_size(200, 200)
-        
-        notebook = gtk.Notebook()
-        for page in range(0, 3):
-            label = gtk.Label()
-            notebook.append_page(label)
-
-        window.connect("destroy", lambda w: gtk.main_quit())
-        
-        window.add(notebook)
-        window.show_all()
-
-Notebook()
-gtk.main()"""
