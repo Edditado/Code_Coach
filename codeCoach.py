@@ -50,5 +50,22 @@ class MainWindow:
         self.window.show_all()
 
 
+    def newDoc(self, widget):
+        newTextArea = gtk.TextView()
+        nPages = self.notebook.get_n_pages()
+        numDoc = 0
+        for i in xrange(nPages):
+            pag = self.notebook.get_nth_page(i)
+            labelName = self.notebook.get_tab_label_text(pag).split("(")
+            if labelName[0] == "Empty document":
+                numDoc += 1
+        if numDoc == 0:
+            self.notebook.append_page(newTextArea, gtk.Label("Empty document"))
+        else: 
+            self.notebook.append_page(newTextArea, gtk.Label("Empty document("+str(numDoc)+")"))
+
+        self.window.show_all()
+
+
 MainWindow()
 gtk.main()
