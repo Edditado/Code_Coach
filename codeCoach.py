@@ -209,8 +209,6 @@ class MainWindow:
         self.notebook.append_page(sw, tab)
 
         btn.connect('clicked', self.on_closetab_button_clicked, sw)
-        #self.notebook.set_focus_child(sw)
-        #self.window.set_title(a.filename + " - Code Coach")
         self.window.show_all()
         self.rutas.append(a.filename + " - Code Coach")
         self.notebook.set_page(-1)
@@ -225,106 +223,150 @@ class MainWindow:
         all_filter.set_name("Todos")
         all_filter.add_pattern("*")
         filename=None
-        dialog=gtk.FileChooserDialog(title="Guardar archivo", action=gtk.FILE_CHOOSER_ACTION_SAVE,
-            buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL, gtk.STOCK_SAVE, gtk.RESPONSE_OK))
-          
-        if (text_filter != None) and (all_filter != None):
-            dialog.add_filter(text_filter)
-            dialog.add_filter(all_filter)
+
+        pageNum = self.notebook.get_current_page()
+        pageCurrent = self.notebook.get_nth_page(pageNum)
+        textviewCurrent=pageCurrent.get_child()
+        textbuffer=textviewCurrent.get_buffer()
+        start_iter = textbuffer.get_start_iter()
+        end_iter = textbuffer.get_end_iter()
+        newcode= textbuffer.get_text(start_iter, end_iter, True)
+
+
+        title = self.rutas[pageNum]
+        filename = title[:-13] #para eliminar ( - CodeCoach)
+        #print os.path.exists(filename)
+        if "\\" in filename:
+            docName = filename.split("\\")[-1]
+        else:
+            docName = filename.split("/")[-1]
+
+
+        if os.path.exists(filename) == True:
             
-        response = dialog.run()
-        if response == gtk.RESPONSE_CANCEL:
-            dialog.destroy()
+            fileNew=open(filename, 'w')
+            fileNew.write(newcode)
+            fileNew.close()
+
+            tab = gtk.HBox(False, 0)
+            tab_label = gtk.Label(docName)
+           
+            tab.pack_start( tab_label )
+
+            #get a stock close button image
+            close_image = gtk.image_new_from_stock(gtk.STOCK_CLOSE, gtk.ICON_SIZE_MENU)
+            
+            #make the close button
+            btn = gtk.Button()
+            btn.set_relief(gtk.RELIEF_NONE)
+            btn.set_focus_on_click(False)
+            btn.add(close_image)
+            tab.pack_start(btn, False, False)
+            tab.show_all()
+            
+            self.notebook.set_tab_label(pageCurrent,tab)
+            btn.connect('clicked', self.on_closetab_button_clicked, pageCurrent)
+
+            self.window.set_title(filename + " - Code Coach")
+            self.window.show_all()
+            print  "Cambios guardados"
+   
+        else:
+
+            dialog=gtk.FileChooserDialog(title="Guardar archivo", action=gtk.FILE_CHOOSER_ACTION_SAVE,
+                buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL, gtk.STOCK_SAVE, gtk.RESPONSE_OK))
+            
+            if (text_filter != None) and (all_filter != None):
+                dialog.add_filter(text_filter)
+                dialog.add_filter(all_filter)
                 
-        if response == gtk.RESPONSE_OK:
+            response = dialog.run()
 
-            cansave= False
-
-            filename = dialog.get_filename()
-            if "\\" in filename:
-                docName = filename.split("\\")[-1]
-            else:
-                docName = filename.split("/")[-1]    
-
-            pageNum = self.notebook.get_current_page()
-            self.rutas[pageNum] = filename + " - Code Coach"
-
-            pageCurrent = self.notebook.get_nth_page(pageNum)
-            textviewCurrent=pageCurrent.get_child()
-            textbuffer=textviewCurrent.get_buffer()
-            start_iter = textbuffer.get_start_iter()
-            end_iter = textbuffer.get_end_iter()
-            newcode= textbuffer.get_text(start_iter, end_iter, True)
-            
-
-            if os.path.exists(dialog.get_filename()) == True:
-               
-                dialog2=confirmOverwriteFileDialog(filename, dialog)
-
-                if dialog2.cansave == True:
-                    cansave = True
-                    if filename != None:
-                        fileNew=open(filename, 'w')
-                        fileNew.write(newcode)
-                        fileNew.close()
-
-                        tab = gtk.HBox(False, 0)
-                        tab_label = gtk.Label(docName)
-                       
-                        tab.pack_start( tab_label )
-
-                        #get a stock close button image
-                        close_image = gtk.image_new_from_stock(gtk.STOCK_CLOSE, gtk.ICON_SIZE_MENU)
-                        
-                        #make the close button
-                        btn = gtk.Button()
-                        btn.set_relief(gtk.RELIEF_NONE)
-                        btn.set_focus_on_click(False)
-                        btn.add(close_image)
-                        tab.pack_start(btn, False, False)
-                        tab.show_all()
-                        
-                        self.notebook.set_tab_label(pageCurrent,tab)
-                        btn.connect('clicked', self.on_closetab_button_clicked, pageCurrent)
-
-                        self.window.set_title(filename + " - Code Coach")
-                        self.window.show_all()
-                    dialog.destroy()
-                else:
-                    dialog.destroy()
+            if response == gtk.RESPONSE_CANCEL:
+                dialog.destroy()
                     
-            else:
-                cansave = True
-                if cansave == True: 
-                    if filename != None:
-                        fileNew=open(filename, 'w')
-                        fileNew.write(newcode)
-                        fileNew.close()
+            if response == gtk.RESPONSE_OK:
 
-                        tab = gtk.HBox(False, 0)
-                        tab_label = gtk.Label(docName)
-                       
-                        tab.pack_start( tab_label )
-
-                        #get a stock close button image
-                        close_image = gtk.image_new_from_stock(gtk.STOCK_CLOSE, gtk.ICON_SIZE_MENU)
-                        
-                        #make the close button
-                        btn = gtk.Button()
-                        btn.set_relief(gtk.RELIEF_NONE)
-                        btn.set_focus_on_click(False)
-                        btn.add(close_image)
-                        tab.pack_start(btn, False, False)
-                        tab.show_all()
-                        
-                        self.notebook.set_tab_label(pageCurrent,tab)
-                        btn.connect('clicked', self.on_closetab_button_clicked, pageCurrent)
-
-                        self.window.set_title(filename + " - Code Coach")
-                        self.window.show_all()
-                    dialog.destroy()
+                filename = dialog.get_filename()
+                self.rutas[pageNum] = filename + " - Code Coach"
+                
+                if "\\" in filename:
+                    docName = filename.split("\\")[-1]
                 else:
-                    pass
+                    docName = filename.split("/")[-1]
+
+                if os.path.exists(dialog.get_filename()) == True:
+               
+                    dialog2=confirmOverwriteFileDialog(filename, dialog)
+
+                    if dialog2.cansave == True:
+                        cansave = True
+                        if filename != None:
+                            fileNew=open(filename, 'w')
+                            fileNew.write(newcode)
+                            fileNew.close()
+
+                            tab = gtk.HBox(False, 0)
+                            tab_label = gtk.Label(docName)
+                           
+                            tab.pack_start( tab_label )
+
+                            #get a stock close button image
+                            close_image = gtk.image_new_from_stock(gtk.STOCK_CLOSE, gtk.ICON_SIZE_MENU)
+                            
+                            #make the close button
+                            btn = gtk.Button()
+                            btn.set_relief(gtk.RELIEF_NONE)
+                            btn.set_focus_on_click(False)
+                            btn.add(close_image)
+                            tab.pack_start(btn, False, False)
+                            tab.show_all()
+                            
+                            self.notebook.set_tab_label(pageCurrent,tab)
+                            btn.connect('clicked', self.on_closetab_button_clicked, pageCurrent)
+
+                            self.window.set_title(filename + " - Code Coach")
+                            self.window.show_all()
+                        dialog.destroy()
+                    else:
+                        dialog.destroy()
+                    
+
+                else:
+                        
+                    cansave = True
+                    if cansave == True: 
+                        if filename != None:
+                            fileNew=open(filename, 'w')
+                            fileNew.write(newcode)
+                            fileNew.close()
+
+                            
+
+                            tab = gtk.HBox(False, 0)
+                            tab_label = gtk.Label(docName)
+                           
+                            tab.pack_start( tab_label )
+
+                            #get a stock close button image
+                            close_image = gtk.image_new_from_stock(gtk.STOCK_CLOSE, gtk.ICON_SIZE_MENU)
+                            
+                            #make the close button
+                            btn = gtk.Button()
+                            btn.set_relief(gtk.RELIEF_NONE)
+                            btn.set_focus_on_click(False)
+                            btn.add(close_image)
+                            tab.pack_start(btn, False, False)
+                            tab.show_all()
+                            
+                            self.notebook.set_tab_label(pageCurrent,tab)
+                            btn.connect('clicked', self.on_closetab_button_clicked, pageCurrent)
+
+                            self.window.set_title(filename + " - Code Coach")
+                            self.window.show_all()
+                            dialog.destroy()
+                    else:
+                        pass
 
     
 
