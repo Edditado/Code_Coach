@@ -3,6 +3,11 @@
 
 import gtk, pango, os
 
+KEYWORDS = ("auto","break","case","char","const","continue","default","do",
+    "double","else","enum","extern","float","for","goto","if",
+    "int","long","register","return","short","signed","sizeof","static",
+    "struct","switch","typedef","union","unsigned","void","volatile","while")
+
 
 class FileChooserDialog:
     filename=""
@@ -60,10 +65,13 @@ class MainWindow:
         toolbar.set_style(gtk.TOOLBAR_BOTH)
         
         btnNew = gtk.ToolButton(gtk.STOCK_NEW)
+        btnNew.set_label("New")
         separator1 = gtk.SeparatorToolItem()
         btnOpen = gtk.ToolButton(gtk.STOCK_OPEN)
+        btnOpen.set_label("Open")
         separator2 = gtk.SeparatorToolItem()
         btnSave = gtk.ToolButton(gtk.STOCK_SAVE)
+        btnSave.set_label("Save")
         
         btnNew.connect("clicked", self.newDoc)
         btnOpen.connect("clicked", self.openwindow)
@@ -79,12 +87,13 @@ class MainWindow:
 
         self.notebook = gtk.Notebook()
         self.notebook.set_scrollable(True)
-        
-
         self.newDoc(None)
         self.notebook.connect("switch-page", self.changeTitle)
 
-        extContainer.pack_start(self.notebook)
+        eb = gtk.EventBox()
+        eb.add(self.notebook)
+        eb.modify_bg(gtk.STATE_NORMAL, gtk.gdk.color_parse("black"))
+        extContainer.pack_start(eb)
         
         align = gtk.Alignment(xalign=0.01)
         notify = gtk.Label("\n")
@@ -99,7 +108,6 @@ class MainWindow:
 
 
     def changeTitle(self, notebook, page, page_num):
-        print self.rutas
         self.window.set_title(self.rutas[page_num])
 
 
@@ -118,7 +126,7 @@ class MainWindow:
         window.clear()
         text_view.style.paint_layout(window=window,
                                      state_type=gtk.STATE_NORMAL,
-                                     use_text=True,
+                                     use_text=False,
                                      area=None,
                                      widget=text_view,
                                      detail=None,
@@ -128,45 +136,78 @@ class MainWindow:
 
 
     def on_closetab_button_clicked(self, sender, widget):
-        #get the page number of the tab we wanted to close
         pagenum = self.notebook.page_num(widget)     
-        #and close it
         self.notebook.remove_page(pagenum)
-
         self.rutas.pop(pagenum)
   
 
-    def newDoc(self, widget):
+    def newDoc(self, widget=None):
+        self.create_page()
+
+        
+    def create_page(self, title="Untitled", ruta="", filetext=""):
+        tab = gtk.HBox(False, 0)
+        tab_label = gtk.Label(title)
+        tab.pack_start( tab_label )
+
+        #make the close button
+        btn = gtk.Button()
+        btn.set_relief(gtk.RELIEF_NONE)
+        btn.set_focus_on_click(False)
+        close_image = gtk.image_new_from_stock(gtk.STOCK_CLOSE, gtk.ICON_SIZE_MENU)
+        btn.add(close_image)
+        tab.pack_start(btn, False, False)
+        tab.show_all()
+
         sw = gtk.ScrolledWindow()
         sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
 
         textArea = gtk.TextView()
         textArea.set_border_window_size(gtk.TEXT_WINDOW_LEFT, 24)
-        textArea.connect("expose-event", self.on_text_view_expose_event)
-        sw.add(textArea)
-                     
-        tab = gtk.HBox(False, 0)
-        tab_label = gtk.Label("Untitled")
-        tab.pack_start( tab_label )
+        textArea.modify_font(pango.FontDescription("Courier New 10"))
+        textArea.modify_base(gtk.STATE_NORMAL, gtk.gdk.color_parse("#333333"))
+        textArea.modify_text(gtk.STATE_NORMAL, gtk.gdk.color_parse("white"))
 
-        #get a stock close button image
-        close_image = gtk.image_new_from_stock(gtk.STOCK_CLOSE, gtk.ICON_SIZE_MENU)
+        tabs = pango.TabArray(1, True)
+        tabs.set_tab(0, pango.TAB_LEFT, 33)
+        textArea.set_tabs(tabs)
+
+        textArea.connect("expose-event", self.on_text_view_expose_event)
+
+        textbuffer = textArea.get_buffer()
+        textbuffer.set_text(filetext)
+        textbuffer.create_tag("keyword", foreground="cyan")
+        if title[-2:] == ".c":
+            for keyword in KEYWORDS:
+                self.search(textbuffer, keyword, textbuffer.get_start_iter())
+            textbuffer.connect("insert_text", self.verify_keyword)
         
-        #make the close button
-        btn = gtk.Button()
-        btn.set_relief(gtk.RELIEF_NONE)
-        btn.set_focus_on_click(False)
-        btn.add(close_image)
-        tab.pack_start(btn, False, False)
-        tab.show_all()
+        sw.add(textArea)
+
+        btn.connect('clicked', self.on_closetab_button_clicked, sw)             
         
         self.notebook.append_page(sw, tab)
-        btn.connect('clicked', self.on_closetab_button_clicked, sw)
-
-        #self.notebook.set_focus_child(sw)
+        
         self.window.show_all()
-        self.rutas.append("Code Coach")
+        self.rutas.append(ruta + "Code Coach")
         self.notebook.set_page(-1)
+
+
+    def verify_keyword(self, textbuffer, iter, text, length):
+        if(text == " " or text == "\n"):
+            for keyword in KEYWORDS:
+                self.search(textbuffer, keyword, textbuffer.get_start_iter())
+         
+
+    def search(self, textbuffer, text, start):
+        end = textbuffer.get_end_iter()
+        match = start.forward_search(text, 0, end)
+
+        if match != None:
+            match_start, match_end = match
+            #print textbuffer.get_text(match_start, match_end)
+            textbuffer.apply_tag_by_name("keyword", match_start, match_end)
+            self.search(textbuffer, text, match_end)
 
 
     def openwindow(self,widget):
@@ -180,42 +221,10 @@ class MainWindow:
         else:
             flname = a.filename.split("/")[-1]
         
-        sw = gtk.ScrolledWindow()
-        sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        textbuffer = gtk.TextBuffer()
-        textbuffer.set_text(code)
-        textAreaCode = gtk.TextView()
-        textAreaCode.set_border_window_size(gtk.TEXT_WINDOW_LEFT, 24)
-        textAreaCode.connect("expose-event", self.on_text_view_expose_event)
-        textAreaCode.set_buffer(textbuffer)
-        sw.add(textAreaCode)
-
-        tab = gtk.HBox(False, 0)
-        tab_label = gtk.Label(flname)
-        tab.pack_start( tab_label )
-
-        #get a stock close button image
-        close_image = gtk.image_new_from_stock(gtk.STOCK_CLOSE, gtk.ICON_SIZE_MENU)
-        
-        #make the close button
-        btn = gtk.Button()
-        btn.set_relief(gtk.RELIEF_NONE)
-        btn.set_focus_on_click(False)
-        btn.add(close_image)
-        tab.pack_start(btn, False, False)
-        tab.show_all()
+        self.create_page(flname, a.filename+" - ", code)
 
 
-        self.notebook.append_page(sw, tab)
-
-        btn.connect('clicked', self.on_closetab_button_clicked, sw)
-        self.window.show_all()
-        self.rutas.append(a.filename + " - Code Coach")
-        self.notebook.set_page(-1)
-
-
-    def savewindow(self,widget):
-        
+    def savewindow(self,widget):       
         text_filter=gtk.FileFilter()
         text_filter.set_name("Archivos de texto")
         text_filter.add_mime_type("text/*")
@@ -232,7 +241,6 @@ class MainWindow:
         end_iter = textbuffer.get_end_iter()
         newcode= textbuffer.get_text(start_iter, end_iter, True)
 
-
         title = self.rutas[pageNum]
         filename = title[:-13] #para eliminar ( - CodeCoach)
         #print os.path.exists(filename)
@@ -241,7 +249,7 @@ class MainWindow:
         else:
             docName = filename.split("/")[-1]
 
-
+        
         if os.path.exists(filename) == True:
             
             fileNew=open(filename, 'w')
@@ -294,6 +302,11 @@ class MainWindow:
                     docName = filename.split("\\")[-1]
                 else:
                     docName = filename.split("/")[-1]
+
+                if docName[-2:] == ".c":
+                    for keyword in KEYWORDS:
+                        self.search(textbuffer, keyword, textbuffer.get_start_iter())
+                    textbuffer.connect("insert_text", self.verify_keyword)
 
                 if os.path.exists(dialog.get_filename()) == True:
                
