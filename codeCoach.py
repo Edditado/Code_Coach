@@ -1,26 +1,36 @@
 #!/usr/bin/env python
 #encoding: utf8
 import windowHelp as wh
-import gtk, pango, os
+import gtk, pango, os, commands, re
 
 KEYWORDS = ("auto","break","case","char","const","continue","default","do",
     "double","else","enum","extern","float","for","goto","if",
     "int","long","register","return","short","signed","sizeof","static",
     "struct","switch","typedef","union","unsigned","void","volatile","while")
 
+OPERATORS = ("=","+","-","*","/","%","&","|","!",">","<","^","~","?",":")
+
+NUMS = ("0","1","2","3","4","5","6","7","8","9",".")
+
+ESCAPE_CHARS = ("\\t","\\n","%d","%f","%s")
+
+STRINGS = ("\"", "'")
+
+COMMENTS = ("//", "/*")
+
 
 class FileChooserDialog:
     filename=""
     def __init__(self):
-        filechooserdialog = gtk.FileChooserDialog("Abrir archivo", None, gtk.FILE_CHOOSER_ACTION_OPEN, (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL, gtk.STOCK_OK, gtk.RESPONSE_OK))
+        filechooserdialog = gtk.FileChooserDialog("Open File", None, gtk.FILE_CHOOSER_ACTION_OPEN, (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL, gtk.STOCK_OK, gtk.RESPONSE_OK))
         filter1 = gtk.FileFilter()
-        filter1.set_name("Todos")
+        filter1.set_name("All")
         filter1.add_pattern("*")
         filechooserdialog.add_filter(filter1)
 
         filter2 = gtk.FileFilter()
-        filter2.set_name("python")
-        filter2.add_pattern("*.py")
+        filter2.set_name("c")
+        filter2.add_pattern("*.c")
         filechooserdialog.add_filter(filter2)
         response = filechooserdialog.run()
         
@@ -54,7 +64,7 @@ class MainWindow:
     def __init__(self):
         self.window = gtk.Window()
         self.window.set_title("Code Coach")
-        self.window.set_size_request(800, 500)
+        self.window.set_size_request(900, 600)
         self.window.set_position(gtk.WIN_POS_CENTER)
         self.window.connect("destroy", lambda w: gtk.main_quit())
         self.rutas = []
@@ -99,15 +109,19 @@ class MainWindow:
 
         eb = gtk.EventBox()
         eb.add(self.notebook)
-        eb.modify_bg(gtk.STATE_NORMAL, gtk.gdk.color_parse("black"))
+        eb.modify_bg(gtk.STATE_NORMAL, gtk.gdk.color_parse("#333333"))
         extContainer.pack_start(eb)
         
-        align = gtk.Alignment(xalign=0.01)
-        notify = gtk.Label("\n")
-        notify.set_justify(gtk.JUSTIFY_LEFT)
-        align.add(notify)
+        align = gtk.Alignment(xalign=0.01)        
+        self.notify = gtk.Label("")
+        self.notify.set_justify(gtk.JUSTIFY_LEFT)    
+        align.add(self.notify)
 
-        extContainer.pack_start(align, expand=False)
+        notifyScroll = gtk.ScrolledWindow()
+        notifyScroll.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        notifyScroll.add_with_viewport(align)
+
+        extContainer.pack_start(notifyScroll, expand=False)
 
         
         self.window.add(extContainer)
@@ -171,7 +185,7 @@ class MainWindow:
 
         textArea = gtk.TextView()
         textArea.set_border_window_size(gtk.TEXT_WINDOW_LEFT, 24)
-        textArea.modify_font(pango.FontDescription("Courier New 10"))
+        textArea.modify_font(pango.FontDescription("Courier New bold 10"))
         textArea.modify_base(gtk.STATE_NORMAL, gtk.gdk.color_parse("#333333"))
         textArea.modify_text(gtk.STATE_NORMAL, gtk.gdk.color_parse("white"))
 
@@ -184,10 +198,15 @@ class MainWindow:
         textbuffer = textArea.get_buffer()
         textbuffer.set_text(filetext)
         textbuffer.create_tag("keyword", foreground="cyan")
+        textbuffer.create_tag("operator", foreground="#ff0066")
+        textbuffer.create_tag("num", foreground="#9966cc")       
+        textbuffer.create_tag("string", foreground="#ffff66")
+        textbuffer.create_tag("escape_char", foreground="#9966cc")
+        textbuffer.create_tag("comment", foreground="gray")
+
         if title[-2:] == ".c":
-            for keyword in KEYWORDS:
-                self.search(textbuffer, keyword, textbuffer.get_start_iter())
-            textbuffer.connect("insert_text", self.verify_keyword)
+            self.verify_keychars(textbuffer)
+            textbuffer.connect("changed", self.verify_keychars)
         
         sw.add(textArea)
 
@@ -200,21 +219,60 @@ class MainWindow:
         self.notebook.set_page(-1)
 
 
-    def verify_keyword(self, textbuffer, iter, text, length):
-        if(text == " " or text == "\n"):
-            for keyword in KEYWORDS:
-                self.search(textbuffer, keyword, textbuffer.get_start_iter())
+    def verify_keychars(self, textbuffer):
+        textbuffer.remove_tag_by_name("keyword", textbuffer.get_start_iter(), textbuffer.get_end_iter())
+        textbuffer.remove_tag_by_name("operator", textbuffer.get_start_iter(), textbuffer.get_end_iter())
+        textbuffer.remove_tag_by_name("num", textbuffer.get_start_iter(), textbuffer.get_end_iter())
+        textbuffer.remove_tag_by_name("string", textbuffer.get_start_iter(), textbuffer.get_end_iter())
+        textbuffer.remove_tag_by_name("escape_char", textbuffer.get_start_iter(), textbuffer.get_end_iter())
+        textbuffer.remove_tag_by_name("comment", textbuffer.get_start_iter(), textbuffer.get_end_iter())
+        for keyword in KEYWORDS:
+            self.search(textbuffer, keyword, textbuffer.get_start_iter(), "keyword")
+        for oper in OPERATORS:
+            self.search(textbuffer, oper, textbuffer.get_start_iter(), "operator")
+        for num in NUMS:
+            self.search(textbuffer, num, textbuffer.get_start_iter(), "num")
+        for string in STRINGS:
+            self.search(textbuffer, string, textbuffer.get_start_iter(), "string")
+        for ec in ESCAPE_CHARS:
+            self.search(textbuffer, ec, textbuffer.get_start_iter(), "escape_char")       
+        for comment in COMMENTS:
+            self.search(textbuffer, comment, textbuffer.get_start_iter(), "comment")
          
 
-    def search(self, textbuffer, text, start):
+    def search(self, textbuffer, text, start, tag_name):
         end = textbuffer.get_end_iter()
         match = start.forward_search(text, 0, end)
 
         if match != None:
             match_start, match_end = match
-            #print textbuffer.get_text(match_start, match_end)
-            textbuffer.apply_tag_by_name("keyword", match_start, match_end)
-            self.search(textbuffer, text, match_end)
+
+            if tag_name == "keyword":
+                if match_start.starts_word() and match_end.ends_word():
+                    textbuffer.apply_tag_by_name(tag_name, match_start, match_end)
+
+            elif tag_name == "string":
+                nextComilla = match_end.forward_search(text, 0)
+                if nextComilla != None:
+                    start_nextComilla, match_end = nextComilla
+                    textbuffer.apply_tag_by_name(tag_name, match_start, match_end)
+
+            elif tag_name == "comment":
+                if text == "//":
+                    line_end = match_end.forward_search("\n", 0)
+                    if line_end != None:
+                        start_line_end, match_end = line_end
+                        textbuffer.apply_tag_by_name(tag_name, match_start, match_end)
+                else:
+                    comment_end = match_end.forward_search("*/", 0)
+                    if comment_end != None:
+                        start_comment_end, match_end = comment_end
+                        textbuffer.apply_tag_by_name(tag_name, match_start, match_end)
+
+            else:
+                textbuffer.apply_tag_by_name(tag_name, match_start, match_end)
+
+            self.search(textbuffer, text, match_end, tag_name)
 
 
     def openwindow(self,widget):
@@ -236,10 +294,10 @@ class MainWindow:
 
     def savewindow(self,widget):       
         text_filter=gtk.FileFilter()
-        text_filter.set_name("Archivos de texto")
+        text_filter.set_name("Text file")
         text_filter.add_mime_type("text/*")
         all_filter=gtk.FileFilter()
-        all_filter.set_name("Todos")
+        all_filter.set_name("All")
         all_filter.add_pattern("*")
         filename=None
 
@@ -314,9 +372,8 @@ class MainWindow:
                     docName = filename.split("/")[-1]
 
                 if docName[-2:] == ".c":
-                    for keyword in KEYWORDS:
-                        self.search(textbuffer, keyword, textbuffer.get_start_iter())
-                    textbuffer.connect("insert_text", self.verify_keyword)
+                    self.verify_keychars(textbuffer)
+                    textbuffer.connect("changed", self.verify_keychars)
 
                 if os.path.exists(dialog.get_filename()) == True:
                
@@ -391,16 +448,22 @@ class MainWindow:
                     else:
                         pass
 
+        self.analize_code(filename)
+
+    def analize_code(self, file_path):
+        output = commands.getoutput("splint "+file_path+" +bounds -hints")
+        split = output.split("\n")
+        output = "\n".join(split[2:])
+        if "(For help" in output:
+            regex = re.search(r"\(\bFor help\b.*\)", output, re.DOTALL).group(0)
+            output = output.replace(regex,"")
+        
+        self.notify.set_text(output)
     
        
            
         
-  
-
-
-
-    
-            
+         
 
 MainWindow()
 gtk.main()
