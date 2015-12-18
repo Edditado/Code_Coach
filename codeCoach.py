@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #encoding: utf8
-
+import windowHelp as wh
 import gtk, pango, os
 
 KEYWORDS = ("auto","break","case","char","const","continue","default","do",
@@ -72,15 +72,22 @@ class MainWindow:
         separator2 = gtk.SeparatorToolItem()
         btnSave = gtk.ToolButton(gtk.STOCK_SAVE)
         btnSave.set_label("Save")
+        separator3 = gtk.SeparatorToolItem()
+        btnPref = gtk.ToolButton(gtk.STOCK_HELP)
+        btnPref.set_label("Help")
+        
         
         btnNew.connect("clicked", self.newDoc)
         btnOpen.connect("clicked", self.openwindow)
         btnSave.connect("clicked", self.savewindow)
+        btnPref.connect("clicked", self.openHelp)
         toolbar.insert(btnNew, 0)
         toolbar.insert(separator1, 1)
         toolbar.insert(btnOpen, 2)
         toolbar.insert(separator2, 3)
         toolbar.insert(btnSave, 4)
+        toolbar.insert(separator3,5)
+        toolbar.insert(btnPref,6)
 
         extContainer.pack_start(toolbar, expand=False)
 
@@ -212,6 +219,7 @@ class MainWindow:
 
     def openwindow(self,widget):
         a=FileChooserDialog()
+        print a.filename
         f = open(a.filename, 'r')
         code= f.read()
         f.close()
@@ -223,6 +231,8 @@ class MainWindow:
         
         self.create_page(flname, a.filename+" - ", code)
 
+    def openHelp(self, widget):
+        wh.showWinHelp()
 
     def savewindow(self,widget):       
         text_filter=gtk.FileFilter()
@@ -382,8 +392,7 @@ class MainWindow:
                         pass
 
     
-
-
+       
            
         
   
