@@ -8,11 +8,11 @@ class windowHelp:
     def __init__(self):
         self.window = gtk.Window()
         self.window.set_title("Recomendaciones")
-        self.window.set_size_request(500, 400)
+        self.window.set_size_request(450, 500)
         self.window.set_position(gtk.WIN_POS_CENTER)
         self.window.connect("destroy", gtk.main_quit)        
         
-        #Contenedor de MenuBar y Seccion de feeds   
+        #Contenedor de MenuBar y Seccion de html
         self.extContainer = gtk.VBox()
         
        
@@ -39,17 +39,17 @@ class windowHelp:
         
         self.selecTreeStore = gtk.TreeStore(str)
         self.selecTree.set_model(self.selecTreeStore)
-        structure = self.selecTreeStore.append(None,["Control Structure"]) 
+        structure = self.selecTreeStore.append(None,["Control Structures"]) 
         self.selecTreeStore.append(structure, ["Identation"])
         self.selecTreeStore.append(structure, ["Braces-{}"]) 
         self.selecTreeStore.append(structure, ["Instruction Lines"]) 
         self.selecTreeStore.append(structure, ["Spaces"])
         self.selecTreeStore.append(structure, ["Parenthesis-()"])
-        self.selecTreeStore.append(structure, ["Unreachable Instruction"])
-        self.selecTreeStore.append(structure, ["Operators ++ and --"])
+        self.selecTreeStore.append(structure, ["Unreachable Code"])
+        self.selecTreeStore.append(structure, ["Operators"])
         self.selecTreeStore.append(structure, ["Loop For"]) 
-        self.selecTreeStore.append(structure, ["Sentence Break"])
-        self.selecTreeStore.append(structure, ["Sentence Switch"]) 
+        self.selecTreeStore.append(structure, ["Sentences goto, break y continue"])
+        self.selecTreeStore.append(structure, ["Return"]) 
         variables = self.selecTreeStore.append(None,["Variables"])
         self.selecTreeStore.append(variables, ["Global Variables"])
         self.selecTreeStore.append(variables, ["Variable Names"])
@@ -61,8 +61,6 @@ class windowHelp:
         self.selecTreeStore.append(comments, ["Line"])
         self.selecTreeStore.append(comments, ["Block"])
         self.selecTreeStore.append(comments, ["Structure"])
-
-
 
         scrolled.add(self.selecTree)      
         self.container.add1(scrolled)
@@ -102,15 +100,69 @@ class windowHelp:
         print name_treeview
         path = os.path.dirname(os.path.dirname(__file__)) + "/Code_Coach/Repositorio/"
 
-        if name_treeview == "Identation":
-            path = path + "identation.html"
-            self.view.open(path)
-        if name_treeview == "Braces-{}":
-            path = path + "prueba.html"
-            self.view.open(path)
+        if (name_treeview != "Control Structures" and name_treeview != "Variables" and name_treeview != "Comments"):
+            if name_treeview == "Identation":
+                path = path + "Identation.html"
+                self.view.open(path)
+            if name_treeview == "Braces-{}":
+                path = path + "braces.html"
+                self.view.open(path)
+                print "braces"
+            if name_treeview == "Instruction Lines":
+                path = path + "instructionlines.html"
+                self.view.open(path)
+            if name_treeview == "Spaces":
+                path = path + "spaces.html"
+                self.view.open(path)     
+            if name_treeview == "Parenthesis-()":
+                path = path + "parenthesis.html"
+                self.view.open(path)
+            if name_treeview == "Unreachable Code":
+                path = path + "unreachable.html"
+                self.view.open(path)
+            if name_treeview == "Operators":
+                path = path + "operators.html"
+                self.view.open(path)    
+            if name_treeview == "Loop For":
+                path = path + "for.html"
+                self.view.open(path) 
+            if name_treeview == "Sentences goto, break y continue":
+                path = path + "break.html"
+                self.view.open(path) 
+            if name_treeview == "Return":
+                path = path + "return.html"
+                self.view.open(path)
+            if name_treeview == "Global Variables":
+                path = path + "global.html"
+                self.view.open(path)
+            if name_treeview == "Variable Names":
+                path = path + "variableNames.html"
+                self.view.open(path)
+            if name_treeview == "Constant Values":
+                path = path + "ConstantValues.html"
+                self.view.open(path)
+            if name_treeview == "Declaration and Inicialization":
+                path = path + "declAndInit.html"
+                self.view.open(path)
+            if name_treeview == "Conversion":
+                path = path + "Conversion.html"
+                self.view.open(path)
+            if name_treeview == "Headers":
+                path = path + "headers.html"
+                self.view.open(path)
+            if name_treeview == "Line":
+                path = path + "line.html"
+                self.view.open(path)
+            if name_treeview == "Block":
+                path = path + "block.html"
+                self.view.open(path)    
+            if name_treeview == "Structure":
+                path = path + "structure.html"
+                self.view.open(path)                                                        
         else:
             path = path + "error.html"
-            self.view.open(path)   
+            self.view.open(path)
+            print "error"   
 
         
         
