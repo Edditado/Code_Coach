@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 #encoding: utf8
 import windowHelp as wh
+import windowSettings as ws
 import gtk, pango, os, commands, re
 
 KEYWORDS = ("auto","break","case","char","const","continue","default","do",
@@ -18,6 +19,9 @@ STRINGS = ("\"", "'")
 
 COMMENTS = ("//", "/*")
 
+SetCat= ["Conversion", "Variables", "Return", "Data Types", "Sentences", "Operators"]
+
+Variables= {"return":["Return","Return"],"identifier":["Declaration and Inicialization", "Variables"],"Assignment": ["Conversion", "Conversion"],"Variable": ["Declaration and Inicialization", "Variables"], "out-of-bounds":["Declaration and Inicialization", "Variables"] }
 
 class FileChooserDialog:
     filename=""
@@ -69,7 +73,7 @@ class MainWindow:
         self.window.connect("destroy", lambda w: gtk.main_quit())
         self.rutas = []
 
-        extContainer = gtk.VBox()
+        self.extContainer = gtk.VBox()
 
         toolbar = gtk.Toolbar()
         toolbar.set_style(gtk.TOOLBAR_BOTH)
@@ -84,13 +88,17 @@ class MainWindow:
         btnSave.set_label("Save")
         separator3 = gtk.SeparatorToolItem()
         btnPref = gtk.ToolButton(gtk.STOCK_HELP)
-        btnPref.set_label("Help")
+        btnPref.set_label("Help")    
+        separator4 = gtk.SeparatorToolItem()
+        btnSett = gtk.ToolButton(gtk.STOCK_PREFERENCES)
+        btnSett.set_label("Settings")        
         
         
         btnNew.connect("clicked", self.newDoc)
         btnOpen.connect("clicked", self.openwindow)
         btnSave.connect("clicked", self.savewindow)
         btnPref.connect("clicked", self.openHelp)
+        btnSett.connect("clicked", self.showSettings)
         toolbar.insert(btnNew, 0)
         toolbar.insert(separator1, 1)
         toolbar.insert(btnOpen, 2)
@@ -98,8 +106,10 @@ class MainWindow:
         toolbar.insert(btnSave, 4)
         toolbar.insert(separator3,5)
         toolbar.insert(btnPref,6)
+        toolbar.insert(separator4,7)
+        toolbar.insert(btnSett,8)
 
-        extContainer.pack_start(toolbar, expand=False)
+        self.extContainer.pack_start(toolbar, expand=False)
 
 
         self.notebook = gtk.Notebook()
@@ -110,21 +120,14 @@ class MainWindow:
         eb = gtk.EventBox()
         eb.add(self.notebook)
         eb.modify_bg(gtk.STATE_NORMAL, gtk.gdk.color_parse("#333333"))
-        extContainer.pack_start(eb)
+        self.extContainer.pack_start(eb)
         
-        align = gtk.Alignment(xalign=0.01)        
-        self.notify = gtk.Label("")
-        self.notify.set_justify(gtk.JUSTIFY_LEFT)    
-        align.add(self.notify)
-
-        notifyScroll = gtk.ScrolledWindow()
-        notifyScroll.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        notifyScroll.add_with_viewport(align)
-
-        extContainer.pack_start(notifyScroll, expand=False)
-
+        self.notifyScroll = gtk.ScrolledWindow()
+        self.notifyScroll.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
         
-        self.window.add(extContainer)
+        self.extContainer.pack_start(self.notifyScroll)
+
+        self.window.add(self.extContainer)
         self.window.show_all()
 
 
@@ -290,7 +293,21 @@ class MainWindow:
         self.create_page(flname, a.filename+" - ", code)
 
     def openHelp(self, widget):
-        wh.showWinHelp()
+        item=""
+        wh.showWinHelp(item)
+
+
+
+
+    def showSettings(self, widget):
+        ws.Sett(SetCat)
+
+
+
+
+
+
+
 
     def savewindow(self,widget):       
         text_filter=gtk.FileFilter()
@@ -451,16 +468,89 @@ class MainWindow:
         self.analize_code(filename)
 
     def analize_code(self, file_path):
+
         output = commands.getoutput("splint "+file_path+" +bounds -hints")
         split = output.split("\n")
         output = "\n".join(split[2:])
         if "(For help" in output:
             regex = re.search(r"\(\bFor help\b.*\)", output, re.DOTALL).group(0)
             output = output.replace(regex,"")
+
+        if "\\" in file_path:
+            flname = file_path.split("\\")[-1]
+        else:
+            flname = file_path.split("/")[-1]
+        outp = output.split("\n")
+        boxP= self.notifyScroll.get_child()
+        if(boxP!= None):
+            self.notifyScroll.remove(boxP)
+        boxP=self.AddNotify(outp,flname)
+        self.notifyScroll.add_with_viewport(boxP)
+        self.notifyScroll.show_all()
+
+
+
+    def AddNotify(self, outp, flname):
+        box1 = gtk.VBox(spacing=6)
+        for i in outp:
+            if i!= outp[0]:
+                i=i.replace("../../"+flname+":","Line ")
+            else:
+                i=i.replace("../../","")
+            box2 = gtk.HBox(spacing=0)
+            line = gtk.Label()
+            line.set_text(i)
+            line.set_alignment(0, 0)
+            event_box = gtk.EventBox()
+            event_box.show()
+            box2.pack_start(line, True, True, 50)
+            if self.makeLink(i, outp,flname):
+                label = gtk.Label("Check Recommendation")
+                label.set_markup("<span foreground=\"blue\" underline=\"single\">" +
+                label.get_text() + "</span>")
+                label.show()
+                event_box.add(label)
+                event_box.set_events(gtk.gdk.BUTTON_PRESS_MASK)
+                event_box.show()
+                event_box.connect("button_press_event", self.callback2,i)
+                box2.pack_start(event_box, False, True, 80)
+            box1.pack_start(box2, False, False, 3)
+        return box1
+            
         
-        self.notify.set_text(output)
+          
+        
+        
+    def callback2(self, widget,event,data=None):
+        
+        item="Identation"
+        for elem in Variables:
+            if str(elem).upper() in data.upper():
+                item=Variables[elem][0]
+
+        wh.showWinHelp(item)
     
-       
+
+
+
+
+    
+    def makeLink(self, line, outp,flname):
+        cm=True
+        if line == outp[0] or ("@ Line" in line) or "Line" not in line or line == "" or line == outp[-1]:
+            cm=False
+        for elem in Variables:
+            if str(elem).upper() in line.upper():
+                item=Variables[elem][1]
+                if item not in SetCat:
+                    cm= False
+        
+
+        return cm
+
+        
+
+
            
         
          

@@ -4,11 +4,18 @@
 import gtk, os
 import webkit
 
+catG={"Control Structures": (0,), "Identation": (0,0), "Braces": (0,1), "Instruction Lines": (0,2),
+   "Spaces": (0,3) , "Parenthesis": (0,4),  "Operators": (0,6), "Loop For": (0,8),  "Return": (0,9),
+    "Global Variables": (1,0), "Variable Names": (1,1), "Constant Values" : (1,2), "Declaration and Inicialization": (1,3),
+    "Conversion": (1,4), "Headers": (2,0), "Line": (2,1), "Block": (2,2), "Structure": (2,3)}
+
+
+
 class windowHelp: 
-    def __init__(self):
+    def __init__(self, item):
         self.window = gtk.Window()
         self.window.set_title("Recomendaciones")
-        self.window.set_size_request(450, 500)
+        self.window.set_size_request(600, 500)
         self.window.set_position(gtk.WIN_POS_CENTER)
         self.window.connect("destroy", gtk.main_quit)        
         
@@ -23,13 +30,20 @@ class windowHelp:
         #Columna izquierda
         scrolled = gtk.ScrolledWindow()
         scrolled.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+
         self.selecTree = gtk.TreeView()
+
         self.selecTree.connect("row-activated", self.showRecommendation)
+
+        #path=self.selecTree.get_path("Identation")
+        
         
         self.selecCol = gtk.TreeViewColumn("Indice")
         self.selecCol.set_alignment(0.1)
         self.selecCol.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
+
         
+
         cell = gtk.CellRendererText()
 
         self.selecCol.pack_start(cell, False)
@@ -64,7 +78,8 @@ class windowHelp:
 
         scrolled.add(self.selecTree)      
         self.container.add1(scrolled)
-               
+
+          
         # Columna derecha
         self.view = webkit.WebView()
         scrolled = gtk.ScrolledWindow()
@@ -90,6 +105,8 @@ class windowHelp:
         self.extContainer.pack_start(self.container)
         	
         self.window.add(self.extContainer)
+        if item!="":
+            self.selecTree.row_activated(catG[item],self.selecCol)
         
         self.window.show_all()
     
@@ -97,7 +114,6 @@ class windowHelp:
         model = treeview.get_model()
         it = model.get_iter(path)
         name_treeview = model.get_value(it, 0)
-        print name_treeview
         path = os.path.dirname(os.path.dirname(__file__)) + "/Code_Coach/Repositorio/"
 
         if (name_treeview != "Control Structures" and name_treeview != "Variables" and name_treeview != "Comments"):
@@ -107,7 +123,6 @@ class windowHelp:
             if name_treeview == "Braces-{}":
                 path = path + "braces.html"
                 self.view.open(path)
-                print "braces"
             if name_treeview == "Instruction Lines":
                 path = path + "instructionlines.html"
                 self.view.open(path)
@@ -162,12 +177,12 @@ class windowHelp:
         else:
             path = path + "error.html"
             self.view.open(path)
-            print "error"   
+            
 
         
         
 
         
-def showWinHelp():
-	windowHelp()
+def showWinHelp(item):
+	windowHelp(item)
 	gtk.main()
